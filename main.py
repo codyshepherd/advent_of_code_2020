@@ -19,12 +19,22 @@ class Expense(object):
                 return reduce(lambda a,b: a*b, summands, 1)
 
 
-@click.command()
-@click.argument('fname', type=click.Path())
-def main(fname):
+def day_1(fname: str):
     ex = Expense(fname)
     print('Part 1: {}'.format(ex.multiply_summands(2020, 2)))
     print('Part 2: {}'.format(ex.multiply_summands(2020, 3)))
+
+
+@click.command()
+@click.argument('day')
+@click.argument('fname', type=click.Path())
+def main(day, fname):
+
+    commands = {
+        '1': lambda x: day_1(fname)
+    }
+
+    commands.get(day, lambda x: print(f'No day {x}'))(fname)
 
 
 if __name__ == '__main__':
