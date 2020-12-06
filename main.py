@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import re
+
 import click
 
 from functools import reduce
@@ -51,6 +53,78 @@ class SledMap(object):
         for (right, down) in slope_list:
             trees.append(self.count_trees_on_slope(right, down))
         return trees
+
+
+class Passports(object):
+
+    eye_colors = [
+        'amb',
+        'blu',
+        'brn',
+        'gry',
+        'grn',
+        'hzl',
+        'oth',
+    ]
+
+    validation_ops = {
+        'byr': lambda x: len(x) == 4 and 1920 <= int(x) <= 2002,
+        'iyr': lambda x: len(x) == 4 and 2010 <= int(x) <= 2020,
+        'eyr': lambda x: len(x) == 4 and 2020 <= int(x) <= 2030,
+        'hgt': lambda x: (150 <= Passports.try_cast(x[:-2]) <= 193 and re.match(r'^[0-9]+cm$', x) is not None) \
+                or (59 <= Passports.try_cast(x[:-2]) <= 76 and re.match(r'^[0-9]+in$', x) is not None),
+        'hcl': lambda x: re.match(r'^#[0-9a-f]{6}$', x) is not None,
+        'ecl': lambda x: x in Passports.eye_colors,
+        'pid': lambda x: re.match(r'^[0-9]{9}$', x) is not None,
+        'cid': lambda x: True,
+    }
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.read()
+
+        raw_docs = self.input.split('\n\n')
+
+        self.docs = []
+
+        for doc in raw_docs:
+            parsed = {}
+            entries = doc.split()
+            for entry in entries:
+                pair = entry.split(':')
+                k = pair[0]
+                v = pair[1]
+                parsed[k] = v
+            self.docs.append(parsed)
+
+    @staticmethod
+    def try_cast(val: str)->int:
+        try:
+            casted = int(val)
+        except ValueError:
+            casted = -1
+        return casted
+
+    def is_data_valid(self, doc: dict)->bool:
+        return all([Passports.validation_ops[k](v) for k, v in doc.items()])
+
+    def is_doc_valid(self, doc: dict)->bool:
+        keys = doc.keys()
+        return all([k in keys or k == 'cid' for k in Passports.validation_ops.keys()])
+
+    def count_valid_docs(self)-> int:
+        count = 0
+        for doc in self.docs:
+            if self.is_doc_valid(doc):
+                count += 1
+        return count
+
+    def count_valid_docs_improved(self)->int:
+        count = 0
+        for doc in self.docs:
+            if self.is_doc_valid(doc) and self.is_data_valid(doc):
+                count += 1
+        return count
 
 
 class Passwords(object):
@@ -125,6 +199,13 @@ def day_3(fname: str):
     print('Part 2: {}'.format(prod))
 
 
+def day_4(fname: str):
+    print('Day 3\n==========')
+    p = Passports(fname)
+    print('Part 1: {}'.format(p.count_valid_docs()))
+    print('Part 2: {}'.format(p.count_valid_docs_improved()))
+
+
 @click.command()
 @click.argument('day')
 @click.argument('fname', type=click.Path())
@@ -134,6 +215,7 @@ def main(day, fname):
         '1': lambda x: day_1(fname),
         '2': lambda x: day_2(fname),
         '3': lambda x: day_3(fname),
+        '4': lambda x: day_4(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
