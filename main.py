@@ -176,6 +176,44 @@ class Passwords(object):
         return count
 
 
+class BoardingPasses(object):
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.readlines()
+
+        self.converted = []
+        for line in self.input:
+            part1 = line[:7]
+            part2 = line[7:]
+
+            b_string1 = part1.replace('B', '1')
+            b_string1 = b_string1.replace('F', '0')
+
+            b_string2 = part2.replace('R', '1')
+            b_string2 = b_string2.replace('L', '0')
+
+            self.converted.append((int(b_string1, 2), int(b_string2, 2)))
+
+    def highest_seat(self)->int:
+        max_found = 0
+        for row, seat in self.converted:
+            result = (row*8) + seat
+            if result > max_found:
+                max_found = result
+        return max_found
+
+    def find_seat(self)->int:
+        all_results = []
+        for row, seat in self.converted:
+            result = (row*8) + seat
+            all_results.append(result)
+
+        for i in range(128*8):
+            if i-1 in all_results and i+1 in all_results and i not in all_results:
+                return i
+
+
 def day_1(fname: str):
     ex = Expense(fname)
     print('Part 1: {}'.format(ex.multiply_summands(2020, 2)))
@@ -200,10 +238,17 @@ def day_3(fname: str):
 
 
 def day_4(fname: str):
-    print('Day 3\n==========')
+    print('Day 4\n==========')
     p = Passports(fname)
     print('Part 1: {}'.format(p.count_valid_docs()))
     print('Part 2: {}'.format(p.count_valid_docs_improved()))
+
+
+def day_5(fname: str):
+    print('Day 5\n==========')
+    b = BoardingPasses(fname)
+    print('Part 1: {}'.format(b.highest_seat()))
+    print('Part 2: {}'.format(b.find_seat()))
 
 
 @click.command()
@@ -216,6 +261,7 @@ def main(day, fname):
         '2': lambda x: day_2(fname),
         '3': lambda x: day_3(fname),
         '4': lambda x: day_4(fname),
+        '5': lambda x: day_5(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
