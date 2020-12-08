@@ -7,18 +7,19 @@ import click
 from functools import reduce
 from itertools import combinations
 
+
 class Expense(object):
 
     def __init__(self, filename: str):
         with open(filename, 'r') as fh:
             self.input = fh.readlines()
 
-    def multiply_summands(self, target: int, num: int)->int:
+    def multiply_summands(self, target: int, num: int) -> int:
         combos = combinations(self.input, num)
         for combo in combos:
             summands = [int(combo[i]) for i in range(len(combo))]
             if sum(summands) == target:
-                return reduce(lambda a,b: a*b, summands, 1)
+                return reduce(lambda a, b: a*b, summands, 1)
 
 
 class SledMap(object):
@@ -27,7 +28,7 @@ class SledMap(object):
         with open(filename, 'r') as fh:
             self.input = fh.readlines()
 
-    def prepare_map(self, right:int, down:int):
+    def prepare_map(self, right: int, down: int):
         total_required_length = (right*down*len(self.input))+1
         newmap = []
         for line in self.input:
@@ -37,18 +38,17 @@ class SledMap(object):
             newmap.append(newline)
         return newmap
 
-    def count_trees_on_slope(self, right: int, down: int)->int:
+    def count_trees_on_slope(self, right: int, down: int) -> int:
         slope_map = self.prepare_map(right, down)
         count = 0
 
         for h, line in enumerate(slope_map):
             index = (right*down*h) if right > down else (right*(h//down))
-            newstring = line[:index] + '[' + line[index] + ']' + line[index+1:]
-            if h != 0 and h%down == 0 and line[index] == '#':
+            if h != 0 and h % down == 0 and line[index] == '#':
                 count += 1
         return count
 
-    def count_several_slopes(self, slope_list: (int, int))-> list:
+    def count_several_slopes(self, slope_list: (int, int)) -> list:
         trees = []
         for (right, down) in slope_list:
             trees.append(self.count_trees_on_slope(right, down))
@@ -71,7 +71,7 @@ class Passports(object):
         'byr': lambda x: len(x) == 4 and 1920 <= int(x) <= 2002,
         'iyr': lambda x: len(x) == 4 and 2010 <= int(x) <= 2020,
         'eyr': lambda x: len(x) == 4 and 2020 <= int(x) <= 2030,
-        'hgt': lambda x: (150 <= Passports.try_cast(x[:-2]) <= 193 and re.match(r'^[0-9]+cm$', x) is not None) \
+        'hgt': lambda x: (150 <= Passports.try_cast(x[:-2]) <= 193 and re.match(r'^[0-9]+cm$', x) is not None)
                 or (59 <= Passports.try_cast(x[:-2]) <= 76 and re.match(r'^[0-9]+in$', x) is not None),
         'hcl': lambda x: re.match(r'^#[0-9a-f]{6}$', x) is not None,
         'ecl': lambda x: x in Passports.eye_colors,
@@ -98,28 +98,29 @@ class Passports(object):
             self.docs.append(parsed)
 
     @staticmethod
-    def try_cast(val: str)->int:
+    def try_cast(val: str) -> int:
         try:
             casted = int(val)
         except ValueError:
             casted = -1
         return casted
 
-    def is_data_valid(self, doc: dict)->bool:
+    def is_data_valid(self, doc: dict) -> bool:
         return all([Passports.validation_ops[k](v) for k, v in doc.items()])
 
-    def is_doc_valid(self, doc: dict)->bool:
+    def is_doc_valid(self, doc: dict) -> bool:
         keys = doc.keys()
-        return all([k in keys or k == 'cid' for k in Passports.validation_ops.keys()])
+        return all([k in keys or k == 'cid' for k in
+                    Passports.validation_ops.keys()])
 
-    def count_valid_docs(self)-> int:
+    def count_valid_docs(self) -> int:
         count = 0
         for doc in self.docs:
             if self.is_doc_valid(doc):
                 count += 1
         return count
 
-    def count_valid_docs_improved(self)->int:
+    def count_valid_docs_improved(self) -> int:
         count = 0
         for doc in self.docs:
             if self.is_doc_valid(doc) and self.is_data_valid(doc):
@@ -153,7 +154,7 @@ class Passwords(object):
             }
             key += 1
 
-    def count_valid_pwds(self)->int:
+    def count_valid_pwds(self) -> int:
         count = 0
         for entry in self.db.values():
             if entry['letter_count'] <= entry['high'] and \
@@ -162,7 +163,7 @@ class Passwords(object):
 
         return count
 
-    def count_valid_pwds_new(self)->int:
+    def count_valid_pwds_new(self) -> int:
         count = 0
         for entry in self.db.values():
             pwd = entry['pwd']
@@ -195,7 +196,7 @@ class BoardingPasses(object):
 
             self.converted.append((int(b_string1, 2), int(b_string2, 2)))
 
-    def highest_seat(self)->int:
+    def highest_seat(self) -> int:
         max_found = 0
         for row, seat in self.converted:
             result = (row*8) + seat
@@ -203,15 +204,40 @@ class BoardingPasses(object):
                 max_found = result
         return max_found
 
-    def find_seat(self)->int:
+    def find_seat(self) -> int:
         all_results = []
         for row, seat in self.converted:
             result = (row*8) + seat
             all_results.append(result)
 
         for i in range(128*8):
-            if i-1 in all_results and i+1 in all_results and i not in all_results:
+            if i-1 in all_results and i+1 in all_results and i not in \
+              all_results:
                 return i
+
+
+class Customs(object):
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.read()
+
+        self.groups = self.input.split('\n\n')
+
+    def sum_group_counts(self) -> int:
+        total = 0
+        for group in self.groups:
+            lines = group.split()
+            total += len(set(reduce(lambda a, b: set(a).union(set(b)), lines)))
+        return total
+
+    def sum_group_all_counts(self) -> int:
+        total = 0
+        for group in self.groups:
+            lines = group.split()
+            total += len(set(reduce(lambda a, b: set(a).intersection(set(b)),
+                                    lines)))
+        return total
 
 
 def day_1(fname: str):
@@ -233,7 +259,7 @@ def day_3(fname: str):
     print('Part 1: {}'.format(m.count_trees_on_slope(3, 1)))
     trees = m.count_several_slopes([(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)])
     print(trees)
-    prod = reduce(lambda a,b: a*b, trees, 1)
+    prod = reduce(lambda a, b: a*b, trees, 1)
     print('Part 2: {}'.format(prod))
 
 
@@ -251,6 +277,13 @@ def day_5(fname: str):
     print('Part 2: {}'.format(b.find_seat()))
 
 
+def day_6(fname: str):
+    print('Day 6\n==========')
+    c = Customs(fname)
+    print('Part 1: {}'.format(c.sum_group_counts()))
+    print('Part 2: {}'.format(c.sum_group_all_counts()))
+
+
 @click.command()
 @click.argument('day')
 @click.argument('fname', type=click.Path())
@@ -262,6 +295,7 @@ def main(day, fname):
         '3': lambda x: day_3(fname),
         '4': lambda x: day_4(fname),
         '5': lambda x: day_5(fname),
+        '6': lambda x: day_6(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
