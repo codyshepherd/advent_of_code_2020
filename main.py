@@ -6,6 +6,7 @@ import click
 
 from functools import reduce
 from itertools import combinations
+from queue import Queue
 
 
 class Expense(object):
@@ -240,6 +241,95 @@ class Customs(object):
         return total
 
 
+class Luggage(object):
+
+    leaf_value = 'no other'
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.readlines()
+
+        self.dead_ends = []
+        self.parents_of_gold = []
+        self.digraph = {}
+        self.contents = {}
+        for line in self.input:
+            line = line.strip('.\n')
+            line = line.replace(' bags', '')
+            line = line.replace(' bag', '')
+            splitline = line.split(' contain ')
+            key = splitline[0]
+            values = splitline[1]
+            values_list = values.split(', ')
+            edges = []
+            for value in values_list:
+                if value == Luggage.leaf_value:
+                    number = 0
+                    edge = value
+                else:
+                    number = value[0]
+                    edge = value[2:]
+                edges.append({"number": int(number), "edge": edge})
+            self.digraph[key] = edges
+
+    def count_shiny_gold_contents(self) -> int:
+        count = 0
+        gold_edges = self.digraph['shiny gold']
+
+        for edge in gold_edges:
+            count += edge['number']
+            count += self.count_contents(edge['edge'])*edge['number']
+
+        return count
+
+    def count_contents(self, key: str) -> int:
+        if key in self.contents.keys():
+            return self.contents[key]
+
+        count = 0
+        if key == Luggage.leaf_value:
+            return 0
+
+        edges = self.digraph[key]
+        for entry in edges:
+            edge = entry['edge']
+            num = entry['number']
+            count += num
+            count += self.count_contents(edge)*num
+        self.contents[key] = count
+        return count
+
+    def count_shiny_gold_containers(self) -> int:
+        count = 0
+
+        for k in self.digraph.keys():
+            if self.does_key_lead_to_gold(k):
+                count += 1
+
+        return count
+
+    def does_key_lead_to_gold(self, key: str) -> bool:
+        q = Queue()
+        edges = self.digraph.get(key, [])
+        for e in edges:
+            q.put(e)
+
+        while not q.empty():
+            entry = q.get()
+            e = entry['edge']
+            if e in self.parents_of_gold or e == 'shiny gold':
+                return True
+            elif e in self.dead_ends:
+                continue
+            elif self.does_key_lead_to_gold(e):
+                self.parents_of_gold.append(e)
+                return True
+            else:
+                self.dead_ends.append(e)
+                continue
+        return False
+
+
 def day_1(fname: str):
     ex = Expense(fname)
     print('Part 1: {}'.format(ex.multiply_summands(2020, 2)))
@@ -284,6 +374,13 @@ def day_6(fname: str):
     print('Part 2: {}'.format(c.sum_group_all_counts()))
 
 
+def day_7(fname: str):
+    print('Day 7\n==========')
+    l = Luggage(fname)
+    print('Part 1: {}'.format(l.count_shiny_gold_containers()))
+    print('Part 2: {}'.format(l.count_shiny_gold_contents()))
+
+
 @click.command()
 @click.argument('day')
 @click.argument('fname', type=click.Path())
@@ -296,6 +393,7 @@ def main(day, fname):
         '4': lambda x: day_4(fname),
         '5': lambda x: day_5(fname),
         '6': lambda x: day_6(fname),
+        '7': lambda x: day_7(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
