@@ -483,6 +483,52 @@ class Xmas(object):
         raise Exception("No windows found!")
 
 
+class Joltage(object):
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.read().split('\n')
+
+        self.adapters = []
+        for line in self.input:
+            self.adapters.append(int(line))
+        self.adapters = sorted(self.adapters)
+
+        self.builtin = self.adapters[-1] + 3
+
+    def build_chain(self) -> list:
+        diffs_chain = []
+        adapters_reversed = list(reversed(self.adapters + [self.builtin]))
+        for i, adapter in enumerate(adapters_reversed):
+            if i == len(adapters_reversed)-1:
+                diffs_chain.append(adapter)
+            else:
+                diffs_chain.append(adapter - adapters_reversed[i+1])
+        return diffs_chain
+
+    def histogram(self) -> int:
+        diffs_chain = self.build_chain()
+        hist = [0 for i in range(max(diffs_chain)+1)]
+        for val in diffs_chain:
+            hist[val] += 1
+        return hist
+
+    def num_arrangements(self) -> int:
+        self.adapters = [0] + self.adapters
+        perms = [0 for i in range(len(self.adapters))]
+
+        first = True
+        for i in range(len(self.adapters)-1, -1, -1):
+            if first:
+                perms[i] = 1
+                first = False
+            else:
+                for dist in range(1, 4):
+                    if i + dist <= len(self.adapters) - 1 and self.adapters[i+dist] - self.adapters[i] <= 3:
+                        perms[i] += perms[i+dist]
+        return perms[0]
+
+
 def day_1(fname: str):
     ex = Expense(fname)
     print('Part 1: {}'.format(ex.multiply_summands(2020, 2)))
@@ -550,6 +596,15 @@ def day_9(fname: str):
     print('Part 2: {}'.format(x.find_summands(invalid_sum)))
 
 
+def day_10(fname: str):
+    print('Day 10\n==========')
+    j = Joltage(fname)
+    hist = j.histogram()
+    value = hist[1] * hist[3]
+    print(f'Part 1: {value}')
+    print('Part 2: {}'.format(j.num_arrangements()))
+
+
 @click.command()
 @click.argument('day')
 @click.argument('fname', type=click.Path())
@@ -565,6 +620,7 @@ def main(day, fname):
         '7': lambda x: day_7(fname),
         '8': lambda x: day_8(fname),
         '9': lambda x: day_9(fname),
+        '10': lambda x: day_10(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
