@@ -330,6 +330,123 @@ class Luggage(object):
         return False
 
 
+class Assembler(object):
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.read().split('\n')
+
+        self.code = list(map(
+            lambda a, b: (a, b), range(len(self.input)), self.input))
+
+        self.accum = 0
+        self.pc = 0
+
+        self.executed = {}
+
+    def reset(self):
+        self.accum = 0
+        self.pc = 0
+        self.executed = {}
+
+    def acc(self, x: str) -> int:
+        self.accum += int(x)
+        self.pc += 1
+        return self.accum
+
+    def jmp(self, x: str) -> int:
+        self.pc += int(x)
+        return self.accum
+
+    def nop(self, x: str) -> int:
+        self.pc += 1
+        return self.accum
+
+    def exec_next(self) -> int:
+        l_num, instruction = self.code[self.pc]
+        if self.executed.get(l_num, False):
+            raise Exception(
+                f'acc value prior to first repeated inst: {self.accum}')
+        split_inst = instruction.split()
+        operation = split_inst[0]
+        arg = split_inst[1]
+
+        fn = getattr(self, operation)
+        to_return = fn(arg)
+        self.executed[l_num] = True
+        return to_return
+
+    def exec_next_heuristic(self, limit: int) -> int:
+        if self.pc >= len(self.code):
+            raise Exception(f'End of instructions! Value of acc: {self.accum}')
+        l_num, instruction = self.code[self.pc]
+        times_executed = self.executed.get(l_num, 0)
+        if times_executed > limit:
+            raise Exception(
+                f'acc value prior to first repeated inst: {self.accum}')
+        split_inst = instruction.split()
+        operation = split_inst[0]
+        arg = split_inst[1]
+
+        fn = getattr(self, operation)
+        to_return = fn(arg)
+        self.executed[l_num] = times_executed + 1
+        return to_return
+
+    def accumulator_prior_to_loop(self) -> int:
+        while True:
+            try:
+                self.exec_next()
+            except Exception as e:
+                return int(str(e).split()[-1])
+
+    def find_terminating_program(self) -> int:
+        nops = [x for x in self.code if 'nop' in x[1]]
+        jmps = [x for x in self.code if 'jmp' in x[1]]
+
+        for nop in nops:
+            self.reset()
+            nop_ind = nop[0]
+            nop_inst = nop[1]
+            self.code[nop_ind] = (nop_ind, nop_inst.replace('nop', 'jmp'))
+            loop = False
+            try:
+                while self.pc < len(self.code):
+                    return_value = self.exec_next_heuristic(1000)
+            except Exception as e:
+                if 'acc value' not in str(e):
+                    raise e
+                else:
+                    loop = True
+            if not loop:
+                return return_value
+            else:
+                self.code[nop_ind] = nop
+                print(f'Failed: {nop}, accum: {self.accum}')
+
+        for nop in jmps:
+            self.reset()
+            nop_ind = nop[0]
+            nop_inst = nop[1]
+            self.code[nop_ind] = (nop_ind, nop_inst.replace('jmp', 'nop'))
+            loop = False
+            try:
+                while True:
+                    return_value = self.exec_next_heuristic(1000)
+            except Exception as e:
+                if 'acc value' not in str(e):
+                    raise e
+                else:
+                    loop = True
+            if not loop:
+                return return_value
+            else:
+                self.code[nop_ind] = nop
+                print(f'Failed: {nop}, accum: {self.accum}')
+
+        raise Exception('None found!')
+
+
 def day_1(fname: str):
     ex = Expense(fname)
     print('Part 1: {}'.format(ex.multiply_summands(2020, 2)))
@@ -381,6 +498,14 @@ def day_7(fname: str):
     print('Part 2: {}'.format(l.count_shiny_gold_contents()))
 
 
+def day_8(fname: str):
+    print('Day 8\n==========')
+    a = Assembler(fname)
+    print('Part 1: {}'.format(a.accumulator_prior_to_loop()))
+    b = Assembler(fname)
+    print('Part 2: {}'.format(b.find_terminating_program()))
+
+
 @click.command()
 @click.argument('day')
 @click.argument('fname', type=click.Path())
@@ -394,6 +519,7 @@ def main(day, fname):
         '5': lambda x: day_5(fname),
         '6': lambda x: day_6(fname),
         '7': lambda x: day_7(fname),
+        '8': lambda x: day_8(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
