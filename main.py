@@ -447,6 +447,42 @@ class Assembler(object):
         raise Exception('None found!')
 
 
+class Xmas(object):
+
+    def __init__(self, filename: str):
+        with open(filename, 'r') as fh:
+            self.input = fh.read().split('\n')
+
+        self.values = []
+        for s in self.input:
+            self.values.append(int(s))
+
+    def is_sum(self, val: int, possible: list) -> bool:
+        combos = combinations(possible, 2)
+        sums = [x + y for (x, y) in combos]
+        return val in sums
+
+    def not_a_sum(self) -> int:
+        for i, val in enumerate(self.values):
+            if i < 25:
+                continue
+            if not self.is_sum(int(val), self.values[i-25:i]):
+                return val
+
+        raise Exception("None found!")
+
+    def find_summands(self, val: int) -> tuple:
+        window_sizes = range(2, len(self.values))
+        for window in window_sizes:
+            for j in range(len(self.values)):
+                if j + window > len(self.values):
+                    break
+                window_values = self.values[j:j+window]
+                if sum(window_values) == val:
+                    return min(window_values) + max(window_values)
+        raise Exception("No windows found!")
+
+
 def day_1(fname: str):
     ex = Expense(fname)
     print('Part 1: {}'.format(ex.multiply_summands(2020, 2)))
@@ -506,6 +542,14 @@ def day_8(fname: str):
     print('Part 2: {}'.format(b.find_terminating_program()))
 
 
+def day_9(fname: str):
+    print('Day 9\n==========')
+    x = Xmas(fname)
+    invalid_sum = x.not_a_sum()
+    print(f'Part 1: {invalid_sum}')
+    print('Part 2: {}'.format(x.find_summands(invalid_sum)))
+
+
 @click.command()
 @click.argument('day')
 @click.argument('fname', type=click.Path())
@@ -520,6 +564,7 @@ def main(day, fname):
         '6': lambda x: day_6(fname),
         '7': lambda x: day_7(fname),
         '8': lambda x: day_8(fname),
+        '9': lambda x: day_9(fname),
     }
 
     commands.get(day, lambda x: print(f'No day {x}'))(fname)
